@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"encoding/json"
+	"time"
 )
 
 const (
@@ -19,12 +20,14 @@ const (
 )
 
 type Gest struct {
+	timeDelta int64
 	secretKey string
 	*rest.Client
 }
 
-func New(secretKey string, header http.Header) (g *Gest) {
+func New(serverTime int64, secretKey string, header http.Header) (g *Gest) {
 	g = new(Gest)
+	g.timeDelta = serverTime - time.Now().Unix()
 	g.secretKey = secretKey
 	g.Header = header
 	g.CookieJar, _ = cookiejar.New(nil)
@@ -32,6 +35,10 @@ func New(secretKey string, header http.Header) (g *Gest) {
 }
 
 func (g *Gest) Get(res interface {}, path string, params url.Values) error {
+	if params == nil {
+		params = url.Values{}
+	}
+	params.Set("time", string(time.Now().Unix() + g.timeDelta))
 	reqSign := g.reqSign("GET", path, params)
 	g.Header.Set(SIGN_HEADER, reqSign)
 	var response rest.Response
@@ -42,6 +49,10 @@ func (g *Gest) Get(res interface {}, path string, params url.Values) error {
 }
 
 func (g *Gest) Post(res interface {}, path string, params url.Values) error {
+	if params == nil {
+		params = url.Values{}
+	}
+	params.Set("time", string(time.Now().Unix() + g.timeDelta))
 	reqSign := g.reqSign("POST", path, params)
 	g.Header.Set(SIGN_HEADER, reqSign)
 	var response rest.Response
@@ -52,6 +63,10 @@ func (g *Gest) Post(res interface {}, path string, params url.Values) error {
 }
 
 func (g *Gest) Put(res interface {}, path string, params url.Values) error {
+	if params == nil {
+		params = url.Values{}
+	}
+	params.Set("time", string(time.Now().Unix() + g.timeDelta))
 	reqSign := g.reqSign("PUT", path, params)
 	g.Header.Set(SIGN_HEADER, reqSign)
 	var response rest.Response
@@ -62,6 +77,10 @@ func (g *Gest) Put(res interface {}, path string, params url.Values) error {
 }
 
 func (g *Gest) Delete(res interface {}, path string, params url.Values) error {
+	if params == nil {
+		params = url.Values{}
+	}
+	params.Set("time", string(time.Now().Unix() + g.timeDelta))
 	reqSign := g.reqSign("DELETE", path, params)
 	g.Header.Set(SIGN_HEADER, reqSign)
 	var response rest.Response
