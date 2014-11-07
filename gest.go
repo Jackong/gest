@@ -13,6 +13,7 @@ import (
 	"errors"
 	"encoding/json"
 	"time"
+	"fmt"
 )
 
 const (
@@ -26,7 +27,11 @@ type Gest struct {
 }
 
 func New(serverTime int64, secretKey string, header http.Header) (g *Gest) {
+	if header == nil {
+		header = http.Header{}
+	}
 	g = new(Gest)
+	g.Client = new(rest.Client)
 	g.timeDelta = serverTime - time.Now().Unix()
 	g.secretKey = secretKey
 	g.Header = header
@@ -38,7 +43,7 @@ func (g *Gest) Get(res interface {}, path string, params url.Values) error {
 	if params == nil {
 		params = url.Values{}
 	}
-	params.Set("time", string(time.Now().Unix() + g.timeDelta))
+	params.Set("time", fmt.Sprint("", time.Now().Unix() + g.timeDelta))
 	reqSign := g.reqSign("GET", path, params)
 	g.Header.Set(SIGN_HEADER, reqSign)
 	var response rest.Response
@@ -52,7 +57,7 @@ func (g *Gest) Post(res interface {}, path string, params url.Values) error {
 	if params == nil {
 		params = url.Values{}
 	}
-	params.Set("time", string(time.Now().Unix() + g.timeDelta))
+	params.Set("time", fmt.Sprint("", time.Now().Unix() + g.timeDelta))
 	reqSign := g.reqSign("POST", path, params)
 	g.Header.Set(SIGN_HEADER, reqSign)
 	var response rest.Response
@@ -66,7 +71,7 @@ func (g *Gest) Put(res interface {}, path string, params url.Values) error {
 	if params == nil {
 		params = url.Values{}
 	}
-	params.Set("time", string(time.Now().Unix() + g.timeDelta))
+	params.Set("time", fmt.Sprint("", time.Now().Unix() + g.timeDelta))
 	reqSign := g.reqSign("PUT", path, params)
 	g.Header.Set(SIGN_HEADER, reqSign)
 	var response rest.Response
@@ -95,16 +100,13 @@ func (g *Gest) reqSign(method, uri string, params url.Values) (string) {
 	mac.Write([]byte(method))
 	u, _ := url.Parse(uri)
 	mac.Write([]byte(u.Path))
-
-	if params != nil {
-		var keys []string
-		for key := range params {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-		for _, key := range keys {
-			mac.Write([]byte(key + "=" + strings.Join(params[key], ",")))
-		}
+	var keys []string
+	for key := range params {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		mac.Write([]byte(key + "=" + strings.Join(params[key], ",")))
 	}
 	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
 }
